@@ -1,47 +1,60 @@
-import { useState } from 'react'
-import { buscarCep } from '../../services/viacep'
-import '../../styles/forms.css'
-
+import { useState } from "react";
+import { buscarCep } from "../../services/viacep";
+import { cadastrar } from "../../services/auth";
+import "../../styles/forms.css";
+import { useNavigate } from "react-router-dom";
 
 function Cadastro() {
   // UM estado-objeto para o formulário inteiro (em vez de 7 useState)
   const [form, setForm] = useState({
-    nome: '', email: '', cep: '',
-    logradouro: '', numero: '', bairro: '', cidade: '', uf: '',
-  })
-  const [aviso, setAviso] = useState('')   // mensagens de erro/status
+    nome: "",
+    email: "",
+    cep: "",
+    logradouro: "",
+    numero: "",
+    bairro: "",
+    cidade: "",
+    uf: "",
+  });
+  const [aviso, setAviso] = useState(""); // mensagens de erro/status
+  const navigate = useNavigate(); // para redirecionar após cadastro
 
   // UMA função genérica atualiza QUALQUER campo:
   function atualizarCampo(e) {
-    const { id, value } = e.target          // qual input disparou, e seu valor
+    const { id, value } = e.target; // qual input disparou, e seu valor
     // Regra sagrada: NUNCA modifique o estado — crie um NOVO objeto.
     // ...f copia todos os campos atuais; [id]: value é uma "chave
     // computada": se id for "email", sobrescreve o campo email.
-    setForm(f => ({ ...f, [id]: value }))
+    setForm((f) => ({ ...f, [id]: value }));
   }
 
   // onBlur do CEP: busca na ViaCEP e preenche o endereço NO ESTADO
   async function preencherEndereco() {
-    if (!form.cep) return
+    if (!form.cep) return;
     try {
-      setAviso('Buscando CEP…')             // feedback de carregamento
-      const end = await buscarCep(form.cep)
-      setForm(f => ({
+      setAviso("Buscando CEP…"); // feedback de carregamento
+      const end = await buscarCep(form.cep);
+      setForm((f) => ({
         ...f,
         logradouro: end.logradouro,
         bairro: end.bairro,
-        cidade: end.localidade,             // atenção: a ViaCEP chama cidade de "localidade"
+        cidade: end.localidade, // atenção: a ViaCEP chama cidade de "localidade"
         uf: end.uf,
-      }))
-      setAviso('')
+      }));
+      setAviso("");
     } catch (erro) {
-      setAviso(erro.message)                // "CEP não encontrado." etc.
+      setAviso(erro.message); // "CEP não encontrado." etc.
     }
   }
 
-  function enviar(e) {
-    e.preventDefault()                       // o velho conhecido!
-    alert(`Assinatura registrada, ${form.nome}! Bem-vindo ao Clarim.`)
+  async function enviar(e) {
+    e.preventDefault(); // o velho conhecido!
+    try {
+      await cadastrar(form.nome, form.email, form.senha);
+      navigate("/login"); // redireciona para a tela de login
+    } catch (erro) {
+      console.log(erro.message);
+    }
   }
 
   return (
@@ -58,15 +71,41 @@ function Cadastro() {
         <input id="nome" value={form.nome} onChange={atualizarCampo} required />
 
         <label htmlFor="email">E-mail</label>
-        <input id="email" type="email" value={form.email} onChange={atualizarCampo} required />
+        <input
+          id="email"
+          type="email"
+          value={form.email}
+          onChange={atualizarCampo}
+          required
+        />
+
+        <label htmlFor="senha">Senha</label>
+        <input
+          id="senha"
+          type="password"
+          value={form.senha}
+          onChange={atualizarCampo}
+          minLength={8}
+          required
+        />
 
         <label htmlFor="cep">CEP</label>
         {/* onBlur: ao sair do campo, consulta a ViaCEP */}
-        <input id="cep" value={form.cep} onChange={atualizarCampo}
-               onBlur={preencherEndereco} placeholder="00000-000" required />
+        <input
+          id="cep"
+          value={form.cep}
+          onChange={atualizarCampo}
+          onBlur={preencherEndereco}
+          placeholder="00000-000"
+          required
+        />
 
         <label htmlFor="logradouro">Rua</label>
-        <input id="logradouro" value={form.logradouro} onChange={atualizarCampo} />
+        <input
+          id="logradouro"
+          value={form.logradouro}
+          onChange={atualizarCampo}
+        />
 
         <label htmlFor="bairro">Bairro</label>
         <input id="bairro" value={form.bairro} onChange={atualizarCampo} />
@@ -75,7 +114,12 @@ function Cadastro() {
         <input id="cidade" value={form.cidade} onChange={atualizarCampo} />
 
         <label htmlFor="uf">UF</label>
-        <input id="uf" value={form.uf} onChange={atualizarCampo} maxLength={2} />
+        <input
+          id="uf"
+          value={form.uf}
+          onChange={atualizarCampo}
+          maxLength={2}
+        />
 
         {/* renderização condicional: o aviso só existe se houver texto */}
         {aviso && <p className="aviso">{aviso}</p>}
@@ -83,7 +127,7 @@ function Cadastro() {
         <button type="submit">Assinar</button>
       </form>
     </main>
-  )
+  );
 }
 
-export default Cadastro
+export default Cadastro;
